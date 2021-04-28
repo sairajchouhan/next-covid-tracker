@@ -1,33 +1,36 @@
+import { useState } from 'react';
 import axios from 'axios';
-import parseISO from 'date-fns/parseISO';
-import format from 'date-fns/format';
 import HomeCard from '../components/HomeCard';
-import { GetServerSideProps, GetStaticProps } from 'next';
+import { GetServerSideProps } from 'next';
 
-const Home = ({ data, countries }) => {
-  const { Global: global } = data;
-  console.log(countries);
+const Home = ({ data }) => {
+  const [country, setCountry] = useState(data[0]);
+  console.log(country);
+  const handleCountryChange = (e) => {
+    const found = data.filter((c) => c.slug === e.target.value);
+    setCountry(found[0]);
+  };
 
   return (
-    <div className="">
-      <h1 className="sm:text-5xl md:text-7xl lg:text-8xl text-center">
-        Todays Global Covid Status
+    <div className="mt-14">
+      <h1 className="sm:text-5xl md:text-7xl lg:text-8xl text-center ">
+        Todays {country.country} Covid Status
       </h1>
-      <div className="flex justify-around w-ful mt-10 container w-5/6 mx-auto">
+      <div className="flex justify-around w-ful mt-14 container w-5/6 mx-auto">
         <HomeCard
           type="Confirmed"
-          today={global.NewConfirmed}
-          total={global.TotalConfirmed}
+          today={country.newConfirmed}
+          total={country.totalConfirmed}
         />
         <HomeCard
           type="Recovered"
-          today={global.NewRecovered}
-          total={global.TotalRecovered}
+          today={country.newRecovered}
+          total={country.totalRecovered}
         />
         <HomeCard
           type="Deaths"
-          today={global.NewDeaths}
-          total={global.TotalDeaths}
+          today={country.newDeaths}
+          total={country.totalDeaths}
         />
       </div>
       <div className="container w-5/6 mx-auto text-center my-3 mt-20">
@@ -42,11 +45,12 @@ const Home = ({ data, countries }) => {
           focus:ring-2 focus:ring-blue-600 focus:outline-none
           shadow-lg
           "
+          value={country.slug}
+          onChange={handleCountryChange}
         >
-          <option value="">Global</option>
-          {countries.map((c: any) => (
-            <option value={c.Slug} key={c.Slug}>
-              {c.Country}
+          {data.map((c: any) => (
+            <option value={c.slug} key={c.slug}>
+              {c.country}
             </option>
           ))}
         </select>
@@ -57,12 +61,30 @@ const Home = ({ data, countries }) => {
 
 export const getServerSideProps: GetServerSideProps = async () => {
   const { data } = await axios.get('https://api.covid19api.com/summary');
-  const { data: countries } = await axios.get(
-    'https://api.covid19api.com/countries'
-  );
+  const countries = data.Countries.map((c) => ({
+    slug: c.Slug,
+    country: c.Country,
+    newConfirmed: c.NewConfirmed,
+    newDeaths: c.NewDeaths,
+    newRecovered: c.NewRecovered,
+    totalConfirmed: c.TotalConfirmed,
+    totalDeaths: c.TotalDeaths,
+    totalRecovered: c.TotalRecovered,
+  }));
+  const global = {
+    slug: 'global',
+    country: 'Global',
+    newConfirmed: data.Global.NewConfirmed,
+    newDeaths: data.Global.NewDeaths,
+    newRecovered: data.Global.NewRecovered,
+    totalConfirmed: data.Global.TotalConfirmed,
+    totalDeaths: data.Global.TotalDeaths,
+    totalRecovered: data.Global.TotalRecovered,
+  };
+  countries.unshift(global);
 
   return {
-    props: { data, countries },
+    props: { data: countries },
   };
 };
 
